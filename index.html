@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Do You Love Me? 💕 | Cute Love Prank</title>
+    <meta name="description" content="A cute interactive love confession prank! Will you say YES or try to click NO? 💕">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Canvas for floating background particles / hearts -->
+    <canvas id="heartCanvas"></canvas>
+
+    <!-- Floating Background Decor Shapes -->
+    <div class="bg-decor-circle circle-1"></div>
+    <div class="bg-decor-circle circle-2"></div>
+    <div class="bg-decor-circle circle-3"></div>
+
+    <!-- Top Navigation Bar / Controls -->
+    <header class="top-bar">
+        <button id="soundToggleBtn" class="glass-btn sound-btn" aria-label="Toggle Sound">
+            <span class="sound-icon">🔇</span>
+            <span class="sound-label">Sound OFF</span>
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <main class="app-container">
+        <!-- Main Interactive Card -->
+        <article class="love-card" id="loveCard">
+            <!-- Header Badges -->
+            <div class="card-badge" id="cardBadge">Special Question 💌</div>
+
+            <!-- Animated GIF Container -->
+            <div class="gif-wrapper">
+                <div class="gif-spinner" id="gifSpinner"></div>
+                <img id="cuteGif" src="assets/cute-1.gif" alt="Cute animated GIF" class="cute-gif">
+                <div class="fallback-emoji" id="fallbackEmoji">🥺💕</div>
+            </div>
+
+            <!-- Text Content -->
+            <div class="text-content">
+                <h1 class="main-title" id="mainTitle">Do you love me? 💕</h1>
+                <p class="sub-title" id="subTitle">Please answer honestly! 🥰</p>
+            </div>
+
+            <!-- Interactive Buttons Container -->
+            <div class="buttons-container" id="buttonsContainer">
+                <button id="yesBtn" class="btn yes-btn" aria-label="Yes I love you">
+                    <span class="btn-icon">❤️</span>
+                    <span class="btn-text">YES</span>
+                </button>
+
+                <button id="noBtn" class="btn no-btn" aria-label="No I don't">
+                    <span class="btn-icon" id="noBtnIcon">💔</span>
+                    <span id="noBtnText" class="btn-text">NO</span>
+                </button>
+            </div>
+        </article>
+
+        <!-- Success Celebration View (Hidden initially) -->
+        <article class="success-card hidden" id="successCard">
+            <div class="success-badge">Confession Accepted! 🎉</div>
+            
+            <div class="gif-wrapper">
+                <img id="successGif" src="assets/happy-love.gif" alt="Happy celebration GIF" class="cute-gif">
+            </div>
+
+            <div class="text-content">
+                <h1 class="success-title">Yaaay! You said YES! 🥹💕</h1>
+                <p class="success-message">You just made my heart so happy! ❤️</p>
+                <div class="love-notes">
+                    <span class="note-pill">✨ Favorite person officially</span>
+                    <span class="note-pill">💕 Love accepted 100%</span>
+                    <span class="note-pill">🔒 Forever locked in</span>
+                </div>
+            </div>
+
+            <button id="replayBtn" class="btn replay-btn" aria-label="Replay prank">
+                <span class="btn-icon">🔄</span>
+                <span class="btn-text">Replay Prank</span>
+            </button>
+        </article>
+    </main>
+
+    <!-- Footer Credit -->
+    <footer class="footer-credit">
+        Crafted with 💕 for a playful confession prank
+    </footer>
+
+    <!-- Main Logic Script -->
+    <script src="script.js"></script>
+</body>
+</html>
