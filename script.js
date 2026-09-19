@@ -205,7 +205,7 @@
     });
 
     // --- NO Button Evasion Movement Algorithm ---
-    function moveNoButton() {
+    function moveNoButton(isClickAttempt = false) {
         const now = Date.now();
         if (now - lastMoveTime < MOVE_COOLDOWN) return;
         lastMoveTime = now;
@@ -213,24 +213,29 @@
         initAudio();
         playPopSound();
 
-        // 1. Increment attempt counter & update reaction text FIRST so button width is accurate
-        noCount++;
-        updateReaction();
+        // 1. Increment attempt counter & update reaction state ONLY on click/touch attempt
+        if (isClickAttempt) {
+            noCount++;
+            updateReaction();
+        }
 
-        // 2. Ensure escaped class is applied for measurement
+        // 2. Attach noBtn to document.body so position:fixed is 100% viewport relative
+        if (noBtn.parentElement !== document.body) {
+            document.body.appendChild(noBtn);
+        }
         if (!noBtn.classList.contains('escaped')) {
             noBtn.classList.add('escaped');
         }
 
-        // 3. Measure accurate rendered button size (including padding, border, text)
+        // 3. Measure rendered button size
         const rect = noBtn.getBoundingClientRect();
         const btnWidth = rect.width || 120;
         const btnHeight = rect.height || 48;
-        const margin = 16; // Safe padding from screen edge
+        const margin = 30; // Generous safe padding from screen edges
 
         // 4. Calculate strict viewport boundaries
-        const viewportWidth = Math.min(window.innerWidth, document.documentElement.clientWidth);
-        const viewportHeight = Math.min(window.innerHeight, document.documentElement.clientHeight);
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
 
         const minX = margin;
         const maxX = Math.max(margin, viewportWidth - btnWidth - margin);
@@ -244,13 +249,13 @@
         if (currentCursorPos.x > 0 && currentCursorPos.y > 0) {
             for (let i = 0; i < 10; i++) {
                 const dist = Math.hypot(newX - currentCursorPos.x, newY - currentCursorPos.y);
-                if (dist > 120) break; // Safe distance from cursor
+                if (dist > 130) break; // Safe distance from cursor
                 newX = minX + Math.random() * (maxX - minX);
                 newY = minY + Math.random() * (maxY - minY);
             }
         }
 
-        // 6. Strictly clamp to safe screen boundaries
+        // 6. Strictly clamp within safe screen boundaries
         newX = Math.max(minX, Math.min(newX, maxX));
         newY = Math.max(minY, Math.min(newY, maxY));
 
@@ -298,25 +303,26 @@
 
         const dist = Math.hypot(e.clientX - btnCenterX, e.clientY - btnCenterY);
 
-        // Trigger evasion if cursor gets closer than 85px
+        // Trigger evasion if cursor gets closer than 85px (hover move only)
         if (dist < 85) {
-            moveNoButton();
+            moveNoButton(false);
         }
     });
 
     // --- NO Button Interactive Triggers ---
-    noBtn.addEventListener('mouseenter', moveNoButton);
-    noBtn.addEventListener('mouseover', moveNoButton);
+    // Hovering only shifts position
+    noBtn.addEventListener('mouseenter', () => moveNoButton(false));
+    noBtn.addEventListener('mouseover', () => moveNoButton(false));
     
-    // Mobile Touch & Click handlers
+    // Clicking or Touch attempt triggers reaction update + position shift
     noBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        moveNoButton();
+        moveNoButton(true);
     }, { passive: false });
 
     noBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        moveNoButton();
+        moveNoButton(true);
     });
 
     // --- YES Button Click Handler ---
@@ -345,7 +351,10 @@
     function resetGame() {
         noCount = 0;
 
-        // Reset NO button
+        // Reset NO button & reattach to buttonsContainer
+        if (noBtn.parentElement !== buttonsContainer) {
+            buttonsContainer.appendChild(noBtn);
+        }
         noBtn.classList.remove('escaped');
         noBtn.style.left = '';
         noBtn.style.top = '';
