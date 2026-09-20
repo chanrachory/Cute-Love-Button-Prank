@@ -342,7 +342,7 @@
     function handleNoClick(event) {
         const now = Date.now();
 
-        if (now - lastNoClick < 250) {
+        if (now - lastNoClick < 100) {
             return;
         }
 
