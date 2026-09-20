@@ -7,93 +7,71 @@
 
     // --- State Variables ---
     let noCount = 0;
+    let lastNoClick = 0;
     let isSoundEnabled = false;
     let audioCtx = null;
-    let lastMoveTime = 0;
-    const MOVE_COOLDOWN = 220; // ms between evasive moves
-    let currentCursorPos = { x: -1000, y: -1000 };
 
     // --- Reactions Configuration Array ---
     const reactions = [
         {
             count: 0,
-            text: "Do you love me? 💕",
-            sub: "Please answer honestly! 🥰",
+            text: "Do you love me? 🥺💕",
             gif: "assets/cute-1.gif",
-            noText: "💔 NO",
-            emoji: "🥺💕"
+            noText: "💔 NO"
         },
         {
             count: 1,
             text: "Wait... what? 😳",
-            sub: "Did you just try to click no?",
             gif: "assets/surprised.gif",
-            noText: "😳 NO",
-            emoji: "😳❓"
+            noText: "😳 NO"
         },
         {
             count: 2,
             text: "Are you sure? 🥺",
-            sub: "Think about it again...",
             gif: "assets/confused.gif",
-            noText: "🥺 NO",
-            emoji: "🥺💔"
+            noText: "🥺 REALLY?"
         },
         {
             count: 3,
             text: "Please don't say no... 🥹",
-            sub: "My heart can't take this!",
             gif: "assets/sad-1.gif",
-            noText: "😭 PLEASE DON'T",
-            emoji: "🥹💔"
+            noText: "😭 PLEASE"
         },
         {
             count: 4,
             text: "You're breaking my heart 💔🥺",
-            sub: "Why are you doing this to me?",
             gif: "assets/sad-2.gif",
-            noText: "💔 WAIT",
-            emoji: "💔😭"
+            noText: "💔 WHY?"
         },
         {
             count: 5,
             text: "Seriously?! 😭",
-            sub: "Look how sad I am now...",
             gif: "assets/crying-1.gif",
-            noText: "🥺 REALLY?",
-            emoji: "😭💧"
+            noText: "😭 REALLY?"
         },
         {
             count: 6,
             text: "Okay... I'm getting sad now. 🥲",
-            sub: "Just click YES already!",
             gif: "assets/crying-2.gif",
-            noText: "🥲 WHY ME",
-            emoji: "🥲💔"
+            noText: "🥲 NO"
         },
         {
             count: 7,
             text: "How many times do I have to ask? 😭💔",
-            sub: "Stop running away from love!",
             gif: "assets/dramatic-1.gif",
-            noText: "💔 WHY?!",
-            emoji: "😭⚡"
+            noText: "💔 WHY?!"
         },
         {
             count: 8,
             text: "Fine... I'll just sit here and suffer. 🥺",
-            sub: "Look how big the YES button is!",
             gif: "assets/dramatic-2.gif",
-            noText: "🥺 PLEASE",
-            emoji: "🥺💧"
+            noText: "🥺 PLEASE"
         },
         {
             count: 9,
             text: "Okay okay... I get it... 😭💔",
-            sub: "You HAVE to click YES now!",
             gif: "assets/dramatic-3.gif",
-            noText: "😭 STOP HURTING ME",
-            emoji: "😭😭"
+            noText: "😭 STOP"
         }
     ];
 
@@ -101,38 +79,15 @@
     const loveCard = document.getElementById('loveCard');
     const successCard = document.getElementById('successCard');
     const mainTitle = document.getElementById('mainTitle');
-    const subTitle = document.getElementById('subTitle');
     const cuteGif = document.getElementById('cuteGif');
-    const gifSpinner = document.getElementById('gifSpinner');
-    const fallbackEmoji = document.getElementById('fallbackEmoji');
     const yesBtn = document.getElementById('yesBtn');
     const noBtn = document.getElementById('noBtn');
-    const noBtnText = document.getElementById('noBtnText');
     const replayBtn = document.getElementById('replayBtn');
     const soundToggleBtn = document.getElementById('soundToggleBtn');
     const heartCanvas = document.getElementById('heartCanvas');
+    const buttonsContainer = document.getElementById('buttonsContainer');
 
-    // --- Image Handling & Error Fallback ---
-    cuteGif.addEventListener('load', () => {
-        gifSpinner.style.display = 'none';
-        cuteGif.style.opacity = '1';
-        fallbackEmoji.style.display = 'none';
-    });
-
-    cuteGif.addEventListener('error', () => {
-        gifSpinner.style.display = 'none';
-        cuteGif.style.display = 'none';
-        fallbackEmoji.style.display = 'block';
-    });
-
-    function setGifSource(src, fallbackText) {
-        gifSpinner.style.display = 'block';
-        cuteGif.style.opacity = '0';
-        fallbackEmoji.textContent = fallbackText || '🥺💕';
-        cuteGif.src = src;
-    }
-
-    // --- Web Audio API Synthesizer (No external audio files required!) ---
+    // --- Web Audio API Synthesizer ---
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -168,7 +123,7 @@
     function playVictorySound() {
         if (!isSoundEnabled || !audioCtx) return;
         try {
-            const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            const notes = [523.25, 659.25, 783.99, 1046.50];
             const now = audioCtx.currentTime;
             notes.forEach((freq, index) => {
                 const osc = audioCtx.createOscillator();
@@ -204,126 +159,270 @@
         }
     });
 
-    // --- NO Button Evasion Movement Algorithm ---
-    function moveNoButton(isClickAttempt = false) {
+    // --- Reaction Logic & Helper Functions ---
+    function getCurrentReaction() {
+        let current = reactions[0];
+
+        for (const reaction of reactions) {
+            if (noCount >= reaction.count) {
+                current = reaction;
+            }
+        }
+
+        return current;
+    }
+
+    function updateYesButton() {
+        const scale = Math.min(1 + noCount * 0.04, 1.35);
+
+        yesBtn.style.transform = `scale(${scale})`;
+    }
+
+    function animateReactionChange() {
+        mainTitle.classList.remove("reaction-change");
+        cuteGif.classList.remove("reaction-change");
+
+        void mainTitle.offsetWidth;
+        void cuteGif.offsetWidth;
+
+        mainTitle.classList.add("reaction-change");
+        cuteGif.classList.add("reaction-change");
+    }
+
+    function updateReaction() {
+        const reaction = getCurrentReaction();
+
+        mainTitle.textContent = reaction.text;
+
+        noBtn.textContent = reaction.noText;
+
+        cuteGif.src = reaction.gif;
+
+        updateYesButton();
+
+        animateReactionChange();
+    }
+
+    function moveNoButton() {
+        const rect = noBtn.getBoundingClientRect();
+
+        const currentX = rect.left;
+        const currentY = rect.top;
+
+        const buttonWidth = rect.width;
+        const buttonHeight = rect.height;
+
+        const margin = 16;
+
+        const minX = margin;
+        const minY = margin;
+
+        const maxX = window.innerWidth - buttonWidth - margin;
+        const maxY = window.innerHeight - buttonHeight - margin;
+
+        const cardRect = loveCard.getBoundingClientRect();
+        const CARD_MIN_DISTANCE = 100; // Keep at least 100px away from loveCard
+
+        const MIN_DISTANCE = 100;
+        const MAX_DISTANCE = 200;
+
+        let targetX = currentX;
+        let targetY = currentY;
+        let foundValid = false;
+
+        for (let attempt = 0; attempt < 30; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+
+            const distance =
+                MIN_DISTANCE +
+                Math.random() *
+                (MAX_DISTANCE - MIN_DISTANCE);
+
+            const candidateX =
+                currentX + Math.cos(angle) * distance;
+
+            const candidateY =
+                currentY + Math.sin(angle) * distance;
+
+            if (
+                candidateX >= minX &&
+                candidateX <= maxX &&
+                candidateY >= minY &&
+                candidateY <= maxY
+            ) {
+                const candidateRect = {
+                    left: candidateX,
+                    top: candidateY,
+                    right: candidateX + buttonWidth,
+                    bottom: candidateY + buttonHeight
+                };
+
+                const overlapsCardWithMargin = !(
+                    candidateRect.right < cardRect.left - CARD_MIN_DISTANCE ||
+                    candidateRect.left > cardRect.right + CARD_MIN_DISTANCE ||
+                    candidateRect.bottom < cardRect.top - CARD_MIN_DISTANCE ||
+                    candidateRect.top > cardRect.bottom + CARD_MIN_DISTANCE
+                );
+
+                if (overlapsCardWithMargin) continue;
+
+                targetX = candidateX;
+                targetY = candidateY;
+                foundValid = true;
+                break;
+            }
+        }
+
+        if (!foundValid) {
+            for (let attempt = 0; attempt < 30; attempt++) {
+                const candidateX = minX + Math.random() * Math.max(0, maxX - minX);
+                const candidateY = minY + Math.random() * Math.max(0, maxY - minY);
+
+                const candidateRect = {
+                    left: candidateX,
+                    top: candidateY,
+                    right: candidateX + buttonWidth,
+                    bottom: candidateY + buttonHeight
+                };
+
+                const overlapsCardWithMargin = !(
+                    candidateRect.right < cardRect.left - CARD_MIN_DISTANCE ||
+                    candidateRect.left > cardRect.right + CARD_MIN_DISTANCE ||
+                    candidateRect.bottom < cardRect.top - CARD_MIN_DISTANCE ||
+                    candidateRect.top > cardRect.bottom + CARD_MIN_DISTANCE
+                );
+
+                if (!overlapsCardWithMargin) {
+                    targetX = candidateX;
+                    targetY = candidateY;
+                    foundValid = true;
+                    break;
+                }
+            }
+        }
+
+        if (!foundValid) {
+            for (let attempt = 0; attempt < 20; attempt++) {
+                const candidateX = minX + Math.random() * Math.max(0, maxX - minX);
+                const candidateY = minY + Math.random() * Math.max(0, maxY - minY);
+
+                const candidateRect = {
+                    left: candidateX,
+                    top: candidateY,
+                    right: candidateX + buttonWidth,
+                    bottom: candidateY + buttonHeight
+                };
+
+                const overlapsCardDirectly = !(
+                    candidateRect.right < cardRect.left ||
+                    candidateRect.left > cardRect.right ||
+                    candidateRect.bottom < cardRect.top ||
+                    candidateRect.top > cardRect.bottom
+                );
+
+                if (!overlapsCardDirectly) {
+                    targetX = candidateX;
+                    targetY = candidateY;
+                    foundValid = true;
+                    break;
+                }
+            }
+        }
+
+        if (!foundValid) {
+            targetX = Math.min(Math.max(currentX, minX), maxX);
+            targetY = Math.min(Math.max(currentY, minY), maxY);
+        }
+
+        noBtn.style.position = "fixed";
+        noBtn.style.left = `${targetX}px`;
+        noBtn.style.top = `${targetY}px`;
+    }
+
+    function handleNoClick(event) {
         const now = Date.now();
-        if (now - lastMoveTime < MOVE_COOLDOWN) return;
-        lastMoveTime = now;
+
+        if (now - lastNoClick < 250) {
+            return;
+        }
+
+        lastNoClick = now;
 
         initAudio();
         playPopSound();
 
-        // 1. Increment attempt counter & update reaction state ONLY on click/touch attempt
-        if (isClickAttempt) {
-            noCount++;
-            updateReaction();
-        }
+        noCount++;
 
-        // 2. Attach noBtn to document.body so position:fixed is 100% viewport relative
-        if (noBtn.parentElement !== document.body) {
-            document.body.appendChild(noBtn);
-        }
-        if (!noBtn.classList.contains('escaped')) {
-            noBtn.classList.add('escaped');
-        }
+        updateReaction();
 
-        // 3. Measure rendered button size
+        if (noCount >= 9) {
+            moveNoButton();
+        }
+    }
+
+    function keepNoButtonInsideViewport() {
+        if (noCount < 9) return;
+
         const rect = noBtn.getBoundingClientRect();
-        const btnWidth = rect.width || 120;
-        const btnHeight = rect.height || 48;
-        const margin = 30; // Generous safe padding from screen edges
 
-        // 4. Calculate strict viewport boundaries
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const margin = 16;
 
-        const minX = margin;
-        const maxX = Math.max(margin, viewportWidth - btnWidth - margin);
-        const minY = margin;
-        const maxY = Math.max(margin, viewportHeight - btnHeight - margin);
+        const maxX = Math.max(
+            margin,
+            window.innerWidth - rect.width - margin
+        );
 
-        let newX = minX + Math.random() * (maxX - minX);
-        let newY = minY + Math.random() * (maxY - minY);
+        const maxY = Math.max(
+            margin,
+            window.innerHeight - rect.height - margin
+        );
 
-        // 5. Avoid placing too close to current cursor position
-        if (currentCursorPos.x > 0 && currentCursorPos.y > 0) {
-            for (let i = 0; i < 10; i++) {
-                const dist = Math.hypot(newX - currentCursorPos.x, newY - currentCursorPos.y);
-                if (dist > 130) break; // Safe distance from cursor
-                newX = minX + Math.random() * (maxX - minX);
-                newY = minY + Math.random() * (maxY - minY);
+        const x = Math.min(
+            Math.max(rect.left, margin),
+            maxX
+        );
+
+        const y = Math.min(
+            Math.max(rect.top, margin),
+            maxY
+        );
+
+        noBtn.style.left = `${x}px`;
+        noBtn.style.top = `${y}px`;
+    }
+
+    function handleNoEvasion() {
+        if (noCount >= 9) {
+            initAudio();
+            playPopSound();
+            moveNoButton();
+        }
+    }
+
+    // --- Cursor Proximity Detection (Active only when noCount >= 9) ---
+    document.addEventListener("mousemove", (e) => {
+        if (noCount >= 9) {
+            const rect = noBtn.getBoundingClientRect();
+            const btnCenterX = rect.left + rect.width / 2;
+            const btnCenterY = rect.top + rect.height / 2;
+            const dist = Math.hypot(e.clientX - btnCenterX, e.clientY - btnCenterY);
+            if (dist < 85) {
+                handleNoEvasion();
             }
         }
+    });
 
-        // 6. Strictly clamp within safe screen boundaries
-        newX = Math.max(minX, Math.min(newX, maxX));
-        newY = Math.max(minY, Math.min(newY, maxY));
-
-        // 7. Apply absolute pixel coordinates
-        noBtn.style.left = `${newX}px`;
-        noBtn.style.top = `${newY}px`;
-    }
-
-    // --- Update Reaction & YES Button Scale ---
-    function updateReaction() {
-        // Select reaction state matching noCount
-        const index = Math.min(noCount, reactions.length - 1);
-        const state = reactions[index];
-
-        // Animate text change
-        mainTitle.textContent = state.text;
-        subTitle.textContent = state.sub;
-        noBtnText.textContent = state.noText.replace(/^[^\s]+\s*/, ''); // Keep clean text
-
-        // Update GIF
-        setGifSource(state.gif, state.emoji);
-
-        // Dynamically Scale Up YES Button
-        const baseScale = 1;
-        const scaleStep = 0.16;
-        const currentScale = Math.min(1 + noCount * scaleStep, 2.5); // Cap at 2.5x
-        
-        yesBtn.style.transform = `scale(${currentScale})`;
-        
-        if (noCount >= 4) {
-            yesBtn.classList.add('super-pulse');
-        } else {
-            yesBtn.classList.remove('super-pulse');
-        }
-    }
-
-    // --- Cursor Proximity Detection for Desktop ---
-    document.addEventListener('mousemove', (e) => {
-        currentCursorPos.x = e.clientX;
-        currentCursorPos.y = e.clientY;
-
-        const rect = noBtn.getBoundingClientRect();
-        const btnCenterX = rect.left + rect.width / 2;
-        const btnCenterY = rect.top + rect.height / 2;
-
-        const dist = Math.hypot(e.clientX - btnCenterX, e.clientY - btnCenterY);
-
-        // Trigger evasion if cursor gets closer than 85px (hover move only)
-        if (dist < 85) {
-            moveNoButton(false);
+    // --- NO Button Event Listeners ---
+    noBtn.addEventListener("click", handleNoClick);
+    noBtn.addEventListener("pointerenter", handleNoEvasion);
+    noBtn.addEventListener("pointerdown", (event) => {
+        if (noCount >= 9) {
+            event.preventDefault();
+            handleNoEvasion();
         }
     });
 
-    // --- NO Button Interactive Triggers ---
-    // Hovering only shifts position
-    noBtn.addEventListener('mouseenter', () => moveNoButton(false));
-    noBtn.addEventListener('mouseover', () => moveNoButton(false));
-    
-    // Clicking or Touch attempt triggers reaction update + position shift
-    noBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        moveNoButton(true);
-    }, { passive: false });
-
-    noBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        moveNoButton(true);
-    });
+    window.addEventListener("resize", keepNoButtonInsideViewport);
 
     // --- YES Button Click Handler ---
     yesBtn.addEventListener('click', handleYesClick);
@@ -332,7 +431,6 @@
         initAudio();
         playVictorySound();
 
-        // Switch to Celebration Screen
         loveCard.style.animation = 'cardDisappear 0.4s ease forwards';
         
         setTimeout(() => {
@@ -340,7 +438,6 @@
             successCard.classList.remove('hidden');
             successCard.style.animation = 'cardAppear 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
             
-            // Trigger Confetti Celebration
             launchConfetti();
         }, 400);
     }
@@ -350,25 +447,21 @@
 
     function resetGame() {
         noCount = 0;
+        lastNoClick = 0;
 
-        // Reset NO button & reattach to buttonsContainer
         if (noBtn.parentElement !== buttonsContainer) {
             buttonsContainer.appendChild(noBtn);
         }
-        noBtn.classList.remove('escaped');
-        noBtn.style.left = '';
-        noBtn.style.top = '';
+        noBtn.style.position = "";
+        noBtn.style.left = "";
+        noBtn.style.top = "";
 
-        // Reset YES button scale
         yesBtn.style.transform = 'scale(1)';
-        yesBtn.classList.remove('super-pulse');
 
-        // Reset Card Display
         successCard.classList.add('hidden');
         loveCard.style.display = 'flex';
         loveCard.style.animation = 'cardAppear 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
 
-        // Reset initial state
         updateReaction();
     }
 
@@ -383,23 +476,7 @@
 
     window.addEventListener('resize', () => {
         resizeCanvas();
-        // If NO button is escaped, keep it safe on resize
-        if (noBtn.classList.contains('escaped')) {
-            const rect = noBtn.getBoundingClientRect();
-            const btnWidth = rect.width || 120;
-            const btnHeight = rect.height || 48;
-            const margin = 16;
-            const viewportWidth = Math.min(window.innerWidth, document.documentElement.clientWidth);
-            const viewportHeight = Math.min(window.innerHeight, document.documentElement.clientHeight);
-            const maxX = Math.max(margin, viewportWidth - btnWidth - margin);
-            const maxY = Math.max(margin, viewportHeight - btnHeight - margin);
-            let currentX = parseFloat(noBtn.style.left) || margin;
-            let currentY = parseFloat(noBtn.style.top) || margin;
-            currentX = Math.max(margin, Math.min(currentX, maxX));
-            currentY = Math.max(margin, Math.min(currentY, maxY));
-            noBtn.style.left = `${currentX}px`;
-            noBtn.style.top = `${currentY}px`;
-        }
+        keepNoButtonInsideViewport();
     });
 
     resizeCanvas();
@@ -441,7 +518,6 @@
         }
     }
 
-    // Initialize 25 floating background hearts
     for (let i = 0; i < 25; i++) {
         const heart = new HeartParticle();
         heart.y = Math.random() * heartCanvas.height;

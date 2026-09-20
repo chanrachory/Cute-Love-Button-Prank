@@ -34,8 +34,8 @@
 
 html, body {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
+    overflow-x: hidden;
     font-family: var(--font-body);
     background: var(--bg-gradient);
     background-size: 200% 200%;
@@ -333,20 +333,32 @@ html, body {
     background: var(--gray-btn-bg);
     border: 2px solid var(--gray-btn-border);
     color: var(--gray-btn-text);
-    z-index: 99;
-}
-
-.no-btn.escaped {
-    position: fixed !important;
-    z-index: 9999 !important;
-    margin: 0 !important;
-    transition: left 0.3s cubic-bezier(0.22, 1, 0.36, 1), 
-                top 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 100;
+    transition:
+        left 0.35s ease,
+        top 0.35s ease,
+        transform 0.2s ease;
+    touch-action: manipulation;
 }
 
 .no-btn:hover {
     background: #e4e6eb;
+}
+
+.reaction-change {
+    animation: reactionPop 0.3s ease;
+}
+
+@keyframes reactionPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* Success Celebration View Elements */
